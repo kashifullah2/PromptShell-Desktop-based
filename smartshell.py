@@ -4,7 +4,7 @@
 # from functools import lru_cache
 # import os
 
-# api_key = "AIzaSyBkA9oQFyqX-BEgq1skdzxghxd0_G0494E"
+# api_key = "You-Geminin-Api_Key"
 
 # class SmartShell:
 #     def __init__(self, api_key):
