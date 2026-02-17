@@ -1,4 +1,4 @@
-PyQt6>=6.6.0
+PySide6>=6.6.0
 langchain-groq
 python-dotenv
 pydantic
