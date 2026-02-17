@@ -1,5 +1,9 @@
 PySide6>=6.6.0
 langchain-groq
+langchain-openai
+langchain-google-genai
 python-dotenv
 pydantic
 langchain
+qtawesome
+keyring

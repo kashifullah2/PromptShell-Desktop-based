@@ -1,27 +1,37 @@
 from pydantic import BaseModel, Field
-from langchain_groq import ChatGroq
+from src.core.llm.factory import LLMFactory
 from src.core.config import settings
 import platform
 import json
 
-class Command(BaseModel):
+class CommandResponse(BaseModel):
     command_nlp: str = Field(description="The natural language description of the command")
     command_shell: str = Field(description="The executable shell command")
     explanation: str = Field(description="Brief explanation of what the command does")
-    is_safe: bool = Field(description="Whether the command is safe to execute without confirmation (e.g., ls, echo are safe; rm, dd are not)")
+    is_safe: bool = Field(description="Whether the command is safe to execute without confirmation")
 
 class LLMEngine:
     def __init__(self):
-        if not settings.is_valid:
-            raise ValueError("GROQ_API_KEY not found in environment variables.")
-            
-        self.llm = ChatGroq(
-            model=settings.MODEL_NAME,
-            api_key=settings.GROQ_API_KEY,
-            temperature=0.1 
-        )
+        self.llm = None
+        self.initialize()
+        
+    def initialize(self):
+        """Initialize or re-initialize the LLM client"""
+        try:
+            self.llm = LLMFactory.create_llm()
+        except Exception as e:
+            print(f"LLM Initialization Error: {e}")
+            self.llm = None
 
-    def generate_command(self, user_input: str) -> Command:
+    def generate_command(self, user_input: str) -> CommandResponse:
+        if not self.llm:
+            return CommandResponse(
+                command_nlp=user_input,
+                command_shell="",
+                explanation="LLM not configured. Please check settings.",
+                is_safe=True
+            )
+            
         system_os = platform.system()
         prompt = f"""
         You are a helpful Linux terminal assistant.
@@ -35,7 +45,7 @@ class LLMEngine:
             "is_safe": true/false
         }}
         
-        - "is_safe": false if the command deletes files (rm), modifies system settings, kills processes, or is otherwise destructive. True for read-only commands (ls, cat, grep).
+        - "is_safe": false if the command deletes files (rm), modifies system settings, kills processes (kill), or is otherwise destructive. True for read-only commands (ls, cat, grep).
         
         User request: {user_input}
         """
@@ -50,20 +60,12 @@ class LLMEngine:
             elif "```" in content:
                 content = content.split("```")[1].split("```")[0].strip()
             
-            # Remove any leading/trailing whitespace or non-json characters if possible
             content = content.strip()
-            
             data = json.loads(content)
-            return Command(**data)
-        except (json.JSONDecodeError, ValueError) as e:
-            return Command(
-                command_nlp=user_input,
-                command_shell="",
-                explanation=f"Error parsing command: {str(e)}",
-                is_safe=True
-            )
+            return CommandResponse(**data)
+            
         except Exception as e:
-            return Command(
+            return CommandResponse(
                 command_nlp=user_input,
                 command_shell="",
                 explanation=f"Error generating command: {str(e)}",
