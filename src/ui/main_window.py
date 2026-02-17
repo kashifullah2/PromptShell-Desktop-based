@@ -88,22 +88,14 @@ class PromptShellWindow(QMainWindow):
         self.llm_engine.initialize()
         self.stack.setCurrentIndex(0)
             
-    def process_command(self, text):
+    def process_command(self, text, task_type="command"):
         # 1. Generate Command via LLM (Threaded)
         self.terminal.append_output("Processing...", "#888")
         
         # Create worker
-        # Note: In production, store worker in self to prevent garbage collection
-        self.worker = CommandWorker(text, self.llm_engine)
+        self.worker = CommandWorker(text, self.llm_engine, task_type)
         self.worker.finished.connect(self.on_command_generated)
         self.worker.error.connect(self.on_error)
-        
-        # Logic to wait? No, async.
-        import threading
-        # QThread logic is in CommandWorker. But CommandWorker inherits QObject, not QThread.
-        # Wait, I checked src/core/worker.py in my previous step.
-        # "class CommandWorker(QObject): ... def run(self)..."
-        # It needs to be moved to a QThread.
         
         self.thread = QThread()
         self.worker.moveToThread(self.thread)
@@ -115,31 +107,82 @@ class PromptShellWindow(QMainWindow):
         self.thread.start()
         
     def on_command_generated(self, result):
-        # result is CommandResponse object
-        cmd = result.command_shell
-        explanation = result.explanation
+        import json
         
-        self.terminal.append_output(f"Generated: {cmd}", "#10B981")
-        self.terminal.append_output(f"Explanation: {explanation}", "#aaa")
-        
-        # Execute? Or ask for confirmation?
-        # User requested "stable command execution flow". 
-        # I'll add execute logic here or button.
-        # For professional feel, let's auto-execute if safe, or show button.
-        
-        # For now, auto-execute for flow demonstration, or check safe flag.
-        if result.is_safe:
-            stdout, stderr = self.executor.execute(cmd)
-            if stdout:
-                self.terminal.append_output(stdout)
-            if stderr:
-                self.terminal.append_output(stderr, "#EF4444")
+        if isinstance(result, (dict, list)):
+            # Analyst Mode: Render Table
+            self.terminal.append_output("Analysis Result:", "#10B981")
+            html = self.format_html_table(result)
+            self.terminal.output_area.append(html)
             
-            # Save to history
-            self.history.add_entry(result.command_nlp, cmd, success=not bool(stderr))
-            self.history_view.refresh_history()
+            # Add to history (store as text representation)
+            self.history.add_entry("Analysis Task", "Data Table generated", success=True)
+            
+        elif isinstance(result, str):
+            # Developer Mode: Render Code
+            self.terminal.append_output("Generated Code:", "#10B981")
+            # Escape HTML to prevent rendering
+            import html as html_lib
+            escaped_code = html_lib.escape(result)
+            self.terminal.output_area.append(f"<pre style='background-color:#1E1E1E; color:#D4D4D4; padding:10px; border-radius:4px;'>{escaped_code}</pre>")
+            
+            self.history.add_entry("Code Generation", "Code Block generated", success=True)
+            
         else:
-            self.terminal.append_output("Command deemed unsafe. Please review and execute manually if sure.", "#F59E0B")
+            # Command Mode (CommandResponse object)
+            cmd = result.command_shell
+            explanation = result.explanation
+            
+            self.terminal.append_output(f"Generated: {cmd}", "#10B981")
+            self.terminal.append_output(f"Explanation: {explanation}", "#aaa")
+            
+            if result.is_safe:
+                stdout, stderr = self.executor.execute(cmd)
+                if stdout:
+                    self.terminal.append_output(stdout)
+                if stderr:
+                    self.terminal.append_output(stderr, "#EF4444")
+                
+                self.history.add_entry(result.command_nlp, cmd, success=not bool(stderr))
+                self.history_view.refresh_history()
+            else:
+                self.terminal.append_output("Command deemed unsafe. Please review and execute manually if sure.", "#F59E0B")
+
+    def format_html_table(self, data):
+        import json
+        
+        # Normalize data to columns/rows structure if possible
+        if isinstance(data, list):
+            if data and isinstance(data[0], dict):
+                columns = list(data[0].keys())
+                rows = [[str(item.get(col, "")) for col in columns] for item in data]
+                data = {"columns": columns, "rows": rows}
+        elif isinstance(data, dict) and ("columns" not in data or "rows" not in data):
+            # Key-Value table for simple dicts
+            if all(not isinstance(v, (dict, list)) for v in data.values()):
+                data = {
+                    "columns": ["Field", "Value"],
+                    "rows": [[str(k), str(v)] for k, v in data.items()]
+                }
+
+        # Render table or fallback to JSON
+        if "columns" not in data or "rows" not in data:
+            return f"<pre style='color: #CCCCCC;'>{json.dumps(data, indent=2)}</pre>"
+        
+        html = "<table border='1' cellspacing='0' cellpadding='5' style='border-collapse: collapse; border-color: #444; width: 100%;'>"
+        html += "<thead><tr style='background-color: #333;'>"
+        for col in data["columns"]:
+            html += f"<th style='color: white; padding: 8px; text-align: left;'>{col}</th>"
+        html += "</tr></thead><tbody>"
+        
+        for i, row in enumerate(data["rows"]):
+            bg_color = "#2D2D2D" if i % 2 == 0 else "#252526"
+            html += f"<tr style='background-color: {bg_color};'>"
+            for cell in row:
+                html += f"<td style='padding: 8px; color: #CCCCCC;'>{cell}</td>"
+            html += "</tr>"
+        html += "</tbody></table>"
+        return html
 
     def on_error(self, err):
         self.terminal.append_output(f"Error: {err}", "#EF4444")

@@ -7,3 +7,7 @@ pydantic
 langchain
 qtawesome
 keyring
+pytesseract
+pdfminer.six
+opencv-python
+Pillow
