@@ -11,3 +11,4 @@ pytesseract
 pdfminer.six
 opencv-python
 Pillow
+PySide6-Fluent-Widgets>=1.7.0
