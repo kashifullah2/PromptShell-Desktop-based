@@ -9,6 +9,7 @@ from qfluentwidgets import (TextEdit, LineEdit, PrimaryPushButton, PushButton,
 import os
 import json
 import csv
+import html
 from src.core.media_processor import MediaProcessorWorker
 
 class WelcomeWidget(QWidget):
@@ -56,9 +57,9 @@ class FileContextBar(QFrame):
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(12, 5, 12, 5)
         
-        self.icon_label = QLabel()
-        # We'll set icon via strict stylesheet or pixmap? 
-        # Let's use simple text/emoji for now as per original
+        self.icon_label = ToolButton(FIF.DOCUMENT, self)
+        self.icon_label.setFixedSize(30, 30)
+        self.icon_label.setStyleSheet("border: none; background: transparent;")
         
         self.text_label = StrongBodyLabel("Files ready", self)
         
@@ -66,6 +67,7 @@ class FileContextBar(QFrame):
         self.close_btn.setFixedSize(30, 30)
         self.close_btn.clicked.connect(self.cleared.emit)
         
+        self.layout.addWidget(self.icon_label)
         self.layout.addWidget(self.text_label, 1)
         self.layout.addWidget(self.close_btn)
         
@@ -323,11 +325,12 @@ class TerminalWidget(QWidget):
         if len(display_name) > 50:
             display_name = f"{count} files selected"
             
-        self.file_context_bar.set_text(f"📄 {display_name} - Ready")
+        self.file_context_bar.set_text(f"{display_name}")
         self.file_context_bar.setVisible(True)
         self.input_field.setFocus()
         
-        self.append_output(f"✅ Analyzed {count} files. Total context length: {len(self.active_context)} chars.")
+        # Professional system message
+        self.append_output(f"<span style='color: #4CC2FF;'><b>[SYSTEM]</b></span> Analyzed {count} files. Total context length: {len(self.active_context)} chars.")
         
         InfoBar.success(
             title='Analysis Complete',
@@ -344,10 +347,10 @@ class TerminalWidget(QWidget):
         remaining = len(self.processing_queue)
         current = total - remaining
         self.run_btn.setText(f"Analyzing {current}/{total}...")
-        self.append_output(f"ℹ️ {message}")
+        self.append_output(f"<span style='color: #808080;'>[INFO] {message}</span>")
 
     def on_processing_error(self, error_msg):
-        self.append_output(f"❌ Error analyzing file: {error_msg}")
+        self.append_output(f"<span style='color: #FF4C4C;'><b>[ERROR]</b> {error_msg}</span>")
         # Continue processing next file
         self.process_next_file()
 
@@ -366,6 +369,8 @@ class TerminalWidget(QWidget):
             display_text = text
             task_type = "command"
             
+
+                
             if self.active_context:
                 display_text = f"[With File Context] {text}"
                 system_prompt_add = ""
@@ -384,10 +389,12 @@ class TerminalWidget(QWidget):
                 
                 full_query = f"{system_prompt_add}\n\nContext Content:\n{self.active_context}\n\nUser Question: {text}"
                 
-                self.append_output(f"> {display_text}")
+                safe_text = html.escape(text)
+                self.append_output(f"<span style='color: #CCCCCC;'>&gt; [CONTEXT] {safe_text}</span>")
                 self.command_submitted.emit(full_query, task_type)
             else:
-                self.append_output(f"> {text}")
+                safe_text = html.escape(text)
+                self.append_output(f"<span style='color: #CCCCCC;'>&gt; {safe_text}</span>")
                 self.command_submitted.emit(text, task_type)
                 
             self.input_field.clear()
@@ -397,10 +404,10 @@ class TerminalWidget(QWidget):
         if self.output_stack.currentIndex() != 1:
              self.output_stack.setCurrentIndex(1)
              
-        if "<table" in text and "</table>" in text:
+        # Check for our known pseudo-HTML tags
+        if any(tag in text for tag in ["<span", "<h3", "<table", "<br>", "<b>"]):
             self.output_area.append(text)
         else:
-            import html
             self.output_area.append(html.escape(text))
         
         self.output_area.moveCursor(QTextCursor.MoveOperation.End)
@@ -410,7 +417,7 @@ class TerminalWidget(QWidget):
         self.export_btn.setEnabled(True)
         
         self.output_stack.setCurrentIndex(1)
-        self.append_output("📊 Analysis Result:")
+        self.append_output("<br><h3 style='color: #4CC2FF; font-family: Segoe UI, sans-serif;'>ANALYSIS RESULT</h3>")
         
         if html_content:
             self.output_area.append(html_content)

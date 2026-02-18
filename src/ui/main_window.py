@@ -97,7 +97,6 @@ class PromptShellWindow(FluentWindow):
         
         if isinstance(result, (dict, list)):
             # Analyst Mode: Render Table
-            self.terminal_interface.append_output("📊 Analysis Result:")
             html = self.format_html_table(result)
             self.terminal_interface.display_analysis_result(result, html)
             
@@ -107,7 +106,7 @@ class PromptShellWindow(FluentWindow):
             
         elif isinstance(result, str):
             # Developer Mode: Render Code
-            self.terminal_interface.append_output("💻 Generated Code:")
+            self.terminal_interface.append_output("<br><h3 style='color: #4CC2FF; font-family: Segoe UI, sans-serif;'>GENERATED CODE</h3>")
             self.terminal_interface.append_output(result)
             
             self.history.add_entry("Code Generation", "Code Block generated", success=True)
@@ -118,8 +117,8 @@ class PromptShellWindow(FluentWindow):
             cmd = result.command_shell
             explanation = result.explanation
             
-            self.terminal_interface.append_output(f"Generated: {cmd}")
-            self.terminal_interface.append_output(f"Explanation: {explanation}")
+            self.terminal_interface.append_output(f"<br><span style='color: #4CC2FF;'><b>COMMAND:</b></span> {cmd}")
+            self.terminal_interface.append_output(f"<span style='color: #909090;'><b>EXPLANATION:</b> {explanation}</span>")
             
             if result.is_safe:
                 stdout, stderr = self.executor.execute(cmd)
@@ -131,7 +130,7 @@ class PromptShellWindow(FluentWindow):
                 self.history.add_entry(result.command_nlp, cmd, success=not bool(stderr))
                 self.history_interface.refresh_history()
             else:
-                self.terminal_interface.append_output("⚠️ Command deemed unsafe. Please review and execute manually if sure.")
+                self.terminal_interface.append_output("<br><span style='color: #FFCC00;'><b>[WARNING]</b> Command deemed unsafe. Please review and execute manually if sure.</span>")
                 # We could add an interactive approval here later
 
     def format_html_table(self, data):
@@ -175,9 +174,13 @@ class PromptShellWindow(FluentWindow):
 
     def closeEvent(self, event):
         # Clean up threads
-        if hasattr(self, 'thread') and self.thread.isRunning():
-            self.thread.quit()
-            self.thread.wait()
+        if hasattr(self, 'thread'):
+            try:
+                if self.thread.isRunning():
+                    self.thread.quit()
+                    self.thread.wait()
+            except RuntimeError:
+                pass
         super().closeEvent(event)
 
 def main():
