@@ -83,14 +83,14 @@ class PromptShellWindow(FluentWindow):
         self.worker.finished.connect(self.on_command_generated)
         self.worker.error.connect(self.on_error)
         
-        self.thread = QThread()
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
+        self.command_thread = QThread()
+        self.worker.moveToThread(self.command_thread)
+        self.command_thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.command_thread.quit)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.command_thread.finished.connect(self.command_thread.deleteLater)
         
-        self.thread.start()
+        self.command_thread.start()
         
     def on_command_generated(self, result):
         import json
@@ -174,11 +174,11 @@ class PromptShellWindow(FluentWindow):
 
     def closeEvent(self, event):
         # Clean up threads
-        if hasattr(self, 'thread'):
+        if hasattr(self, 'command_thread'):
             try:
-                if self.thread.isRunning():
-                    self.thread.quit()
-                    self.thread.wait()
+                if self.command_thread.isRunning():
+                    self.command_thread.quit()
+                    self.command_thread.wait()
             except RuntimeError:
                 pass
         super().closeEvent(event)

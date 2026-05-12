@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptShell Professional - FYP 2026</title>
+
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background:
+        radial-gradient(circle at 20% 20%, #3B82F6 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, #4CC2FF 0%, transparent 40%),
+        #0F172A;
+    color: #E5E7EB;
+    overflow: hidden;
+}
+
+/* Progress Bar */
+#progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 4px;
+    background: linear-gradient(90deg,#3B82F6,#4CC2FF);
+    width: 0%;
+    z-index: 999;
+}
+
+/* Slides */
+.slide {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    position: absolute;
+    width: 100%;
+    opacity: 0;
+    transform: translateX(100%);
+}
+
+.slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    animation: fadeZoom 0.6s ease;
+}
+
+@keyframes fadeZoom {
+    from { opacity: 0; transform: scale(0.95) translateY(30px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Typography */
+h1 {
+    font-size: 3.5rem;
+    font-weight: 300;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #3B82F6, #4CC2FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(76,194,255,0.4);
+}
+
+h2 {
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
+    color: #4CC2FF;
+}
+
+p, li {
+    font-size: 1.3rem;
+    line-height: 1.7;
+    max-width: 800px;
+}
+
+ul { margin-top: 1rem; }
+
+li { margin-bottom: 0.7rem; }
+
+/* Cards */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    max-width: 1100px;
+}
+
+.feature-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(76,194,255,0.2);
+    border-radius: 16px;
+    padding: 2rem;
+    backdrop-filter: blur(20px);
+    transition: 0.3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 20px 50px rgba(76,194,255,0.2);
+}
+
+/* Terminal */
+.terminal {
+    background: #0D1117;
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 600px;
+    font-family: monospace;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    text-align: left;
+}
+
+/* Navigation */
+.arrows {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3rem;
+    cursor: pointer;
+    color: rgba(255,255,255,0.4);
+}
+
+.arrows:hover { color: #4CC2FF; }
+
+#prev { left: 2rem; }
+#next { right: 2rem; }
+
+/* Dots */
+.nav-indicator {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+}
+
+.dot.active { background: #4CC2FF; }
+
+/* Footer */
+.footer {
+    position: fixed;
+    bottom: 1rem;
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+    opacity: 0.6;
+}
+
+/* Name block */
+.names {
+    margin-top: 2rem;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    opacity: 0.9;
+}
+</style>
+</head>
+
+<body>
+
+<div id="progress"></div>
+
+<div id="prev" class="arrows" onclick="prevSlide()">‹</div>
+<div id="next" class="arrows" onclick="nextSlide()">›</div>
+
+<!-- Slide 1 -->
+<section class="slide active">
+    <h1>PromptShell</h1>
+    <h2>AI Terminal Assistant</h2>
+    <p>Convert natural language into shell commands</p>
+
+    <div class="names">
+        <strong>FYP 2026</strong><br><br>
+        Muhammad Aamir Pirzada (221523131)<br>
+        Amjid Ali (221527381)
+    </div>
+</section>
+
+<!-- Slide 2 -->
+<section class="slide">
+    <h2>Problem</h2>
+    <ul>
+        <li>⚠️ Complex CLI commands</li>
+        <li>💻 Different OS syntax</li>
+        <li>⏱️ Time wasted debugging</li>
+        <li>🔥 Risk of dangerous commands</li>
+    </ul>
+</section>
+
+<!-- Slide 3 -->
+<section class="slide">
+    <h2>Solution</h2>
+    <ul>
+        <li>🤖 Natural language → command</li>
+        <li>🛡️ Safety detection</li>
+        <li>⚡ Fast execution</li>
+        <li>🎤 Voice support</li>
+    </ul>
+</section>
+
+<!-- Slide 4 -->
+<section class="slide">
+    <h2>Live Demo</h2>
+
+    <div class="terminal">
+        <div style="color:#58A6FF;">$ promptshell</div>
+        <div>> List Python files modified today</div>
+        <div style="color:#3FB950; margin-top:1rem;">
+            find . -name "*.py" -mtime -1
+        </div>
+    </div>
+
+</section>
+
+<!-- Slide 5 -->
+<section class="slide">
+    <h2>Features</h2>
+    <div class="features-grid">
+        <div class="feature-card"><h3>🎨 UI</h3><p>Modern dark UI</p></div>
+        <div class="feature-card"><h3>🤖 AI</h3><p>Multi LLM support</p></div>
+        <div class="feature-card"><h3>🛡️ Safety</h3><p>Command risk detection</p></div>
+        <div class="feature-card"><h3>⚡ Speed</h3><p>Threaded execution</p></div>
+    </div>
+</section>
+
+<!-- Slide 6 -->
+<section class="slide">
+    <h2>Tech Stack</h2>
+    <ul>
+        <li>Python + PySide6</li>
+        <li>LangChain</li>
+        <li>OpenAI / Groq / Gemini</li>
+    </ul>
+</section>
+
+<!-- Slide 7 -->
+<section class="slide">
+    <h2>Impact</h2>
+    <ul>
+        <li>🚀 10x faster workflow</li>
+        <li>🎯 95% accuracy</li>
+        <li>🛡️ Safe execution</li>
+    </ul>
+</section>
+
+<!-- Slide 8 -->
+<section class="slide">
+    <h1>Thank You</h1>
+    <h2>Questions?</h2>
+
+    <div class="names">
+        Muhammad Aamir Pirzada (221523131)<br>
+        Amjid Ali (221527381)
+    </div>
+</section>
+
+<div class="nav-indicator" id="dots"></div>
+<div class="footer">FYP 2026</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+let currentSlide = 0;
+
+function updateSlides() {
+    slides.forEach((s,i)=>{
+        s.classList.remove('active');
+        if(i===currentSlide) s.classList.add('active');
+    });
+    updateDots();
+    updateProgress();
+}
+
+function nextSlide(){ currentSlide=(currentSlide+1)%slides.length; updateSlides(); }
+function prevSlide(){ currentSlide=(currentSlide-1+slides.length)%slides.length; updateSlides(); }
+
+function updateDots(){
+    const dots=document.getElementById('dots');
+    dots.innerHTML=slides.map((_,i)=>
+        `<div class="dot ${i===currentSlide?'active':''}" onclick="goTo(${i})"></div>`
+    ).join('');
+}
+
+function goTo(n){ currentSlide=n; updateSlides(); }
+
+function updateProgress(){
+    document.getElementById("progress").style.width =
+        ((currentSlide+1)/slides.length)*100 + "%";
+}
+
+document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight') nextSlide();
+    if(e.key==='ArrowLeft') prevSlide();
+});
+
+updateSlides();
+</script>
+
+</body>
+</html>

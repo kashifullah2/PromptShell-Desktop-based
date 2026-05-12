@@ -10,7 +10,9 @@ import os
 import json
 import csv
 import html
+import html
 from src.core.media_processor import MediaProcessorWorker
+from src.core.voice_engine import VoiceWorker
 
 class WelcomeWidget(QWidget):
     def __init__(self, parent=None):
@@ -149,9 +151,14 @@ class TerminalWidget(QWidget):
         # Export Button (Hidden/Disabled by default)
         self.export_btn = ToolButton(FIF.SAVE)
         self.export_btn.setToolTip("Export Analysis Result")
-        self.export_btn.setEnabled(False)
         self.export_btn.clicked.connect(self.show_export_menu)
         self.export_btn.setFixedSize(36, 36)
+        
+        # Voice Input Button
+        self.mic_btn = ToolButton(FIF.MICROPHONE, self)
+        self.mic_btn.setToolTip("Voice Command")
+        self.mic_btn.clicked.connect(self.handle_voice_input)
+        self.mic_btn.setFixedSize(36, 36)
         
         # Input Field
         self.input_field = LineEdit()
@@ -172,6 +179,7 @@ class TerminalWidget(QWidget):
         self.clear_btn.setMinimumHeight(36)
         
         input_layout.addWidget(self.upload_btn)
+        input_layout.addWidget(self.mic_btn)
         input_layout.addWidget(self.export_btn) # Added export button
         input_layout.addWidget(self.input_field, 1) 
         input_layout.addWidget(self.run_btn)
@@ -263,6 +271,65 @@ class TerminalWidget(QWidget):
         )
         if file_paths:
             self.start_processing(file_paths)
+
+    def handle_voice_input(self):
+        """Start voice recognition process"""
+        # Ensure previous thread cleaned up
+        if hasattr(self, 'voice_thread'):
+            try:
+                if self.voice_thread.isRunning():
+                    return
+            except RuntimeError:
+                 # Object already deleted
+                 pass
+
+        self.mic_btn.setEnabled(False)
+        self.input_field.setPlaceholderText("Listening...")
+        
+        self.voice_thread = QThread()
+        self.voice_worker = VoiceWorker()
+        self.voice_worker.moveToThread(self.voice_thread)
+        
+        self.voice_thread.started.connect(self.voice_worker.run)
+        self.voice_worker.listening_started.connect(self.on_listening_started)
+        self.voice_worker.listening_stopped.connect(self.on_listening_stopped)
+        self.voice_worker.recognized.connect(self.on_voice_recognized)
+        self.voice_worker.error.connect(self.on_voice_error)
+        
+        self.voice_worker.recognized.connect(self.voice_thread.quit)
+        self.voice_worker.error.connect(self.voice_thread.quit)
+        self.voice_worker.listening_stopped.connect(self.voice_thread.quit)
+        
+        self.voice_thread.finished.connect(self.voice_worker.deleteLater)
+        self.voice_thread.finished.connect(self.voice_thread.deleteLater)
+        
+        self.voice_thread.start()
+
+    def on_listening_started(self):
+        self.mic_btn.setIcon(FIF.SYNC) # Show sync/spinner icon if available or just change color
+        # Ideally we'd animate or change color, but icon change is simple feedback
+        self.input_field.setPlaceholderText("Listening... Speak now")
+
+    def on_listening_stopped(self):
+        self.mic_btn.setIcon(FIF.MICROPHONE)
+        self.mic_btn.setEnabled(True)
+        self.input_field.setPlaceholderText("Enter command...")
+
+    def on_voice_recognized(self, text):
+        if text:
+            self.input_field.setText(text)
+            self.submit_command()
+
+    def on_voice_error(self, error):
+        InfoBar.error(
+            title='Voice Error',
+            content=str(error),
+            orient=Qt.Horizontal,
+            isClosable=True,
+            position=InfoBarPosition.TOP_RIGHT,
+            duration=3000,
+            parent=self
+        )
 
     def start_processing(self, file_paths):
         self.active_file_paths = file_paths
